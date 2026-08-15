@@ -92,7 +92,6 @@ ol{line-height:1.7}
     <div class="status">Waiting for your friend to accept…</div>
     <input id="inviteLink" readonly>
     <button class="bigbtn primary" onclick="shareWhatsApp()">INVITE ONE FRIEND ON WHATSAPP</button>
-    <button class="bigbtn secondary" onclick="copyInvite()">COPY INVITE</button>
   </div>
   <button class="bigbtn secondary" onclick="goHome()">CANCEL</button>
 </section>
@@ -160,7 +159,7 @@ ol{line-height:1.7}
   SOLO works completely in this file.
   FRIEND VS ME uses PeerJS for browser-to-browser communication.
   Because there is no private server in a single HTML file, PeerJS's
-  public signaling service is used. The game itself is synchronized
+  public signaling service at 0.peerjs.com is used. The game itself is synchronized
   between the two browsers after they connect.
 */
 
@@ -184,10 +183,14 @@ const IMAGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"
 state.finalImage="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(IMAGE_SVG);
 
 function acceptFriendInvite(){
-  // Show the existing name-entry screen after acceptance.
-  if(typeof show==="function"){
-    show("friendName");
-  }
+  // An invite link always enters FRIEND VS ME directly.
+  state.mode="friend";
+  const params=new URLSearchParams(location.search);
+  state.roomId=params.get("join");
+  state.difficulty=Number(params.get("size"))||2;
+  document.getElementById("nameTitle").textContent="Enter Your Name";
+  document.getElementById("nameInput").value="";
+  show("name");
 }
 function show(id){
   document.querySelectorAll("section").forEach(s=>s.classList.add("hidden"));
@@ -522,7 +525,19 @@ function showCertificate(type,name,time,mode){
 function createRoom(){
   state.isHost=true;
   state.seed=Math.floor(Math.random()*0xffffffff);
-  const peer=new Peer();
+  const peer=new Peer(undefined,{
+    host:"0.peerjs.com",
+    port:443,
+    path:"/",
+    secure:true,
+    debug:2,
+    config:{
+      iceServers:[
+        {urls:"stun:stun.l.google.com:19302"},
+        {urls:"stun:stun1.l.google.com:19302"}
+      ]
+    }
+  });
   state.peer=peer;
   peer.on("open",id=>{
     state.roomId=id;
@@ -536,20 +551,53 @@ function createRoom(){
     state.conn=conn;
     setupConnection();
   });
-  peer.on("error",e=>alert("Connection error: "+e.message));
+  peer.on("error",e=>{
+    console.error("PeerJS error:",e);
+    const msg=e && e.message ? e.message : "Unknown connection error";
+    document.getElementById("inviteBox").classList.remove("hidden");
+    document.querySelector("#inviteBox .status").textContent=
+      "⚠️ Connection server error: "+msg+". Tap CREATE INVITE again.";
+    try{peer.destroy();}catch(_){}
+    state.peer=null;
+  });
+  peer.on("disconnected",()=>{
+    try{peer.reconnect();}catch(_){}
+  });
 }
 
 function joinRoom(){
   const params=new URLSearchParams(location.search);
   state.roomId=params.get("join");
   state.difficulty=Number(params.get("size"))||2;
-  const peer=new Peer();
+  const peer=new Peer(undefined,{
+    host:"0.peerjs.com",
+    port:443,
+    path:"/",
+    secure:true,
+    debug:2,
+    config:{
+      iceServers:[
+        {urls:"stun:stun.l.google.com:19302"},
+        {urls:"stun:stun1.l.google.com:19302"}
+      ]
+    }
+  });
   state.peer=peer;
   peer.on("open",()=>{
     state.conn=peer.connect(state.roomId,{reliable:true});
     setupConnection();
   });
-  peer.on("error",e=>alert("Could not connect to the room. Ask the host to create a new invite."));
+  peer.on("error",e=>{
+    console.error("Join error:",e);
+    document.getElementById("joinStatus").textContent=
+      "❌ Could not connect. Ask the host to create a NEW invite.";
+    alert("Could not connect to the room. Please ask your friend to create a NEW invite.");
+    try { peer.destroy(); } catch (_) {}
+    state.peer=null;
+  });
+  peer.on("disconnected",()=>{
+    try { peer.reconnect(); } catch (_) {}
+  });
 }
 
 function setupConnection(){
@@ -562,7 +610,10 @@ function setupConnection(){
     }
   });
   state.conn.on("data",handleNetwork);
-  state.conn.on("close",()=>alert("The other player disconnected."));
+  state.conn.on("close",()=>{
+    document.getElementById("opponentStatus").classList.remove("hidden");
+    document.getElementById("opponentStatus").textContent="⚠️ Your friend disconnected.";
+  });
 }
 
 function send(data){
@@ -673,15 +724,17 @@ function cleanupPeer(){
   try{if(state.conn)state.conn.close();if(state.peer)state.peer.destroy()}catch(e){}
 }
 
-/* Handle an invite link automatically */
+/* Handle an invite link automatically.
+   An invite URL must NEVER show the Solo/Friend choice. */
 window.addEventListener("load",()=>{
   const params=new URLSearchParams(location.search);
   if(params.get("join")){
     state.mode="friend";
+    state.roomId=params.get("join");
     state.difficulty=Number(params.get("size"))||2;
-    document.getElementById("nameTitle").textContent="Enter Your Name";
-    document.getElementById("nameInput").value="";
-    show("name");
+    document.getElementById("acceptInvite").classList.remove("hidden");
+    document.getElementById("home").classList.add("hidden");
+    show("acceptInvite");
   }
 });
 </script>
