@@ -3,16 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-
-<title>FIND – Puzzle</title>
+<title>FIND – PUZZLE</title>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 <style>
-
-*{
-    box-sizing:border-box;
-}
+*{box-sizing:border-box}
 
 body{
     margin:0;
@@ -21,6 +18,8 @@ body{
     color:#fff;
     min-height:100vh;
 }
+
+button,input{font:inherit}
 
 .app{
     max-width:900px;
@@ -45,17 +44,13 @@ h1{
 
 h2{
     text-align:center;
+    margin-top:5px;
 }
 
 .subtitle{
     text-align:center;
     color:#d1d5db;
     margin-bottom:25px;
-}
-
-button,
-input{
-    font:inherit;
 }
 
 button{
@@ -66,17 +61,16 @@ button{
     font-weight:700;
 }
 
-button:disabled{
-    opacity:.55;
-    cursor:not-allowed;
-}
-
 .bigbtn{
     width:100%;
     margin:10px 0;
     font-size:18px;
     background:#fff;
     color:#111827;
+}
+
+.bigbtn:hover{
+    transform:translateY(-1px);
 }
 
 .primary{
@@ -102,38 +96,14 @@ input{
     display:none!important;
 }
 
-.status{
-    padding:12px;
-    border-radius:12px;
-    background:rgba(0,0,0,.20);
-    margin:12px 0;
-    text-align:center;
-}
-
-.readyRow{
+.row{
     display:flex;
-    justify-content:space-between;
-    padding:12px 15px;
-    border-radius:12px;
-    margin:8px 0;
-    background:rgba(0,0,0,.20);
-    font-weight:700;
+    gap:12px;
+    flex-wrap:wrap;
 }
 
-.ok{
-    color:#86efac;
-}
-
-.wait{
-    color:#fde68a;
-}
-
-.ref{
-    width:125px;
-    height:125px;
-    object-fit:cover;
-    border-radius:14px;
-    border:3px solid #fff;
+.row>*{
+    flex:1;
 }
 
 .topbar{
@@ -147,6 +117,14 @@ input{
 .timer{
     font-size:24px;
     font-weight:800;
+}
+
+.ref{
+    width:125px;
+    height:125px;
+    object-fit:cover;
+    border-radius:14px;
+    border:3px solid #fff;
 }
 
 .gamegrid{
@@ -163,6 +141,7 @@ input{
     border-radius:10px;
     overflow:hidden;
     background:#111827;
+    cursor:grab;
     position:relative;
     touch-action:none;
     user-select:none;
@@ -172,13 +151,14 @@ input{
     border:3px solid #fbbf24;
 }
 
-.piece{
+.tile .piece{
     position:absolute;
     inset:0;
     background-repeat:no-repeat;
+    background-color:#111827;
 }
 
-.q{
+.tile .q{
     position:absolute;
     inset:0;
     display:grid;
@@ -194,12 +174,45 @@ input{
     min-height:24px;
 }
 
+.status{
+    padding:12px;
+    border-radius:12px;
+    background:rgba(0,0,0,.2);
+    margin:12px 0;
+    text-align:center;
+}
+
+.readyRow{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px;
+    margin:8px 0;
+    border-radius:12px;
+    background:rgba(0,0,0,.2);
+}
+
+.ok{
+    color:#4ade80;
+    font-weight:bold;
+}
+
+.wait{
+    color:#fbbf24;
+    font-weight:bold;
+}
+
 .small{
     font-size:13px;
     color:#cbd5e1;
     line-height:1.5;
 }
 
+ol{
+    line-height:1.7;
+}
+
+/* CERTIFICATE */
 .certificate{
     text-align:center;
     border:8px solid #fbbf24;
@@ -213,6 +226,36 @@ input{
     border-color:#c0c0c0;
 }
 
+.certificate h1{
+    color:#111;
+}
+
+.certificate .certTitle{
+    font-size:38px;
+    font-weight:900;
+    margin:15px 0;
+}
+
+.certificate .certName{
+    font-size:32px;
+    font-weight:800;
+    margin:15px 0;
+}
+
+.certLine{
+    width:80%;
+    height:2px;
+    background:#aaa;
+    margin:15px auto;
+}
+
+.countdown{
+    font-size:70px;
+    font-weight:900;
+    text-align:center;
+    margin:20px;
+    color:#fbbf24;
+}
 </style>
 </head>
 
@@ -220,142 +263,107 @@ input{
 
 <div class="app">
 
-<!-- ================= ACCEPT INVITE ================= -->
-
+<!-- INVITE -->
 <section id="acceptInvite" class="card hidden">
-
-    <h2>🧩 YOU'RE INVITED!</h2>
-
+    <h2>🧩 You’re Invited!</h2>
     <p class="subtitle">
         Your friend is waiting for you to join the same puzzle.
     </p>
 
-    <button
-        class="bigbtn primary"
-        onclick="acceptInviteAndJoin()">
+    <button class="bigbtn primary" onclick="acceptFriendInvite()">
         ✅ ACCEPT & JOIN
     </button>
 
-    <button
-        class="bigbtn secondary"
-        onclick="goHome()">
+    <button class="bigbtn secondary" onclick="goHome()">
         CANCEL
     </button>
-
 </section>
 
-
-<!-- ================= HOME ================= -->
-
+<!-- HOME -->
 <section id="home" class="card">
-
     <h1>🧩 FIND – PUZZLE</h1>
+    <p class="subtitle">Find the correct picture order!</p>
 
-    <p class="subtitle">
-        Find the correct picture order!
-    </p>
-
-    <button
-        class="bigbtn primary"
-        onclick="startSoloMode()">
+    <button class="bigbtn primary" onclick="startSoloName()">
         SOLO
     </button>
 
-    <button
-        class="bigbtn"
-        onclick="startFriendMode()">
+    <button class="bigbtn" onclick="startFriendName()">
         FRIEND VS ME
     </button>
-
 </section>
 
-
-<!-- ================= NAME ================= -->
-
+<!-- NAME -->
 <section id="name" class="card hidden">
-
-    <h2>Enter Your Name</h2>
+    <h2 id="nameTitle">Enter Your Name</h2>
 
     <input
         id="nameInput"
         maxlength="24"
-        placeholder="Your name">
+        placeholder="Your name"
+    >
 
-    <button
-        class="bigbtn primary"
-        onclick="saveName()">
+    <button class="bigbtn primary" onclick="saveName()">
         CONTINUE
     </button>
 
-    <button
-        class="bigbtn secondary"
-        onclick="goHome()">
+    <button class="bigbtn secondary" onclick="goHome()">
         BACK
     </button>
-
 </section>
 
-
-<!-- ================= IMAGE / DIFFICULTY ================= -->
-
+<!-- SOLO IMAGE / DIFFICULTY -->
 <section id="difficulty" class="card hidden">
 
     <h2>🖼️ Choose Your Mystery Image</h2>
 
     <p class="subtitle">
-        Pick any photo from your gallery.
+        Pick any photo from your gallery and turn it into a puzzle! 🧩
     </p>
 
     <label
-        for="hostImageInput"
+        for="imageInput"
         class="bigbtn primary"
-        style="display:block;text-align:center;cursor:pointer;">
+        style="display:block;text-align:center;cursor:pointer;"
+    >
         📸 SELECT FROM GALLERY
     </label>
 
     <input
-        id="hostImageInput"
+        id="imageInput"
         type="file"
         accept="image/*"
-        onchange="loadHostImage(event)"
-        style="display:none;">
+        onchange="loadGalleryImage(event)"
+        style="display:none;"
+    >
 
     <img
-        id="hostImagePreview"
+        id="imagePreview"
         class="ref hidden"
-        style="display:block;margin:10px auto;width:180px;height:180px;">
+        style="display:block;margin:10px auto;width:180px;height:180px"
+        alt="Selected image"
+    >
 
-    <div
-        id="hostImageStatus"
-        class="status">
+    <div class="status" id="imageStatus">
         ✨ Your mystery image is waiting...
     </div>
 
     <h2>Choose Difficulty</h2>
 
-    <button
-        class="bigbtn primary"
-        onclick="chooseDifficulty(2)">
+    <button class="bigbtn primary" onclick="chooseDifficulty(2)">
         SIMPLE — 2 × 2
     </button>
 
-    <button
-        class="bigbtn"
-        onclick="chooseDifficulty(3)">
+    <button class="bigbtn" onclick="chooseDifficulty(3)">
         HARD — 3 × 3
     </button>
 
-    <button
-        class="bigbtn secondary"
-        onclick="goHome()">
+    <button class="bigbtn secondary" onclick="goHome()">
         BACK
     </button>
-
 </section>
 
-
-<!-- ================= HOST LOBBY ================= -->
-
+<!-- HOST LOBBY -->
 <section id="friendLobby" class="card hidden">
 
     <h2 id="friendLobbyTitle">
@@ -364,116 +372,92 @@ input{
 
     <p class="subtitle">
         Invite exactly one friend.
+        Both players choose their own image.
     </p>
 
-    <div id="createInviteArea">
+    <div id="hostControls">
 
         <button
             class="bigbtn primary"
-            onclick="createRoom()">
-            CREATE INVITE
+            onclick="createRoom()"
+        >
+            🔗 CREATE INVITE
         </button>
 
     </div>
 
+    <div id="inviteBox" class="hidden">
 
-    <div
-        id="inviteArea"
-        class="hidden">
-
-        <div
-            id="hostStatus"
-            class="status">
-            Connecting...
+        <div class="status" id="hostInviteStatus">
+            Creating invite...
         </div>
 
-
         <div class="readyRow">
-
             <span>You</span>
-
-            <span class="ok">
-                READY
-            </span>
-
+            <span class="ok">READY</span>
         </div>
 
-
         <div class="readyRow">
-
-            <span id="hostFriendName">
+            <span id="hostFriendLabel">
                 Friend
             </span>
 
             <span
                 id="hostFriendAccepted"
-                class="wait">
+                class="wait"
+            >
                 WAITING
             </span>
-
         </div>
 
-
         <div class="readyRow">
-
-            <span>Friend image</span>
+            <span>Friend Image</span>
 
             <span
                 id="hostFriendImage"
-                class="wait">
+                class="wait"
+            >
                 WAITING
             </span>
-
         </div>
 
-
         <div class="readyRow">
-
             <span>Friend START</span>
 
             <span
                 id="hostFriendStart"
-                class="wait">
+                class="wait"
+            >
                 WAITING
             </span>
-
         </div>
 
-
-        <!-- FIRST SHOW -->
-
         <button
-            id="whatsappButton"
+            id="whatsappBtn"
             class="bigbtn primary"
-            onclick="shareInviteOnWhatsApp()">
+            onclick="shareWhatsApp()"
+        >
             📱 INVITE ON WHATSAPP
         </button>
 
-
-        <!-- AFTER WHATSAPP -->
-
+        <!-- HOST START -->
         <button
-            id="hostStartButton"
+            id="hostStartBtn"
             class="bigbtn primary hidden"
-            onclick="hostPressStart()"
-            disabled>
+            onclick="hostStart()"
+        >
             ▶️ START GAME
         </button>
 
     </div>
 
-
-    <button
-        class="bigbtn secondary"
-        onclick="goHome()">
+    <button class="bigbtn secondary" onclick="goHome()">
         CANCEL
     </button>
 
 </section>
 
-
-<!-- ================= FRIEND IMAGE ================= -->
-
+<!-- FRIEND IMAGE -->
 <section id="friendImage" class="card hidden">
 
     <h2>🖼️ Choose Your Image</h2>
@@ -485,7 +469,8 @@ input{
     <label
         for="friendImageInput"
         class="bigbtn primary"
-        style="display:block;text-align:center;cursor:pointer;">
+        style="display:block;text-align:center;cursor:pointer;"
+    >
         📸 SELECT FROM GALLERY
     </label>
 
@@ -494,69 +479,66 @@ input{
         type="file"
         accept="image/*"
         onchange="loadFriendImage(event)"
-        style="display:none;">
+        style="display:none;"
+    >
 
     <img
         id="friendImagePreview"
         class="ref hidden"
-        style="display:block;margin:10px auto;width:180px;height:180px;">
+        style="display:block;margin:10px auto;width:180px;height:180px"
+        alt="Friend image"
+    >
 
     <div
+        class="status"
         id="friendImageStatus"
-        class="status">
+    >
         ✨ Select your image.
     </div>
 
     <button
         class="bigbtn primary"
-        onclick="friendImageDone()">
+        onclick="friendImageDone()"
+    >
         CONTINUE
     </button>
 
 </section>
 
-
-<!-- ================= READY ================= -->
-
+<!-- FRIEND READY -->
 <section id="friendReady" class="card hidden">
 
     <h2>🚦 Ready to Start</h2>
 
     <div
+        class="status"
         id="friendReadyStatus"
-        class="status">
-        Waiting for your friend...
+    >
+        Waiting for your friend…
     </div>
 
-
     <div class="readyRow">
-
         <span>You</span>
-
-        <span class="ok">
-            IMAGE READY
-        </span>
-
+        <span class="ok">IMAGE READY</span>
     </div>
 
-
     <div class="readyRow">
-
         <span>Friend</span>
 
         <span
             id="friendHostReady"
-            class="wait">
+            class="wait"
+        >
             WAITING
         </span>
-
     </div>
 
-
+    <!-- FRIEND START -->
     <button
-        id="friendStartButton"
+        id="friendStartBtn"
         class="bigbtn primary"
-        onclick="friendPressStart()">
+        onclick="friendStart()"
+    >
         ▶️ START GAME
     </button>
 
@@ -567,78 +549,63 @@ input{
 
 </section>
 
-
-<!-- ================= GAME ================= -->
-
+<!-- GAME -->
 <section id="game" class="card hidden">
 
     <div class="topbar">
 
         <div>
-
             <div id="playerLabel"></div>
-
-            <div
-                id="modeLabel"
-                class="small">
-            </div>
-
+            <div id="modeLabel" class="small"></div>
         </div>
 
-
-        <div
-            class="timer"
-            id="timer">
+        <div class="timer" id="timer">
             00:00
         </div>
 
-
         <div>
-
-            <div class="small">
-                Final Image
-            </div>
+            <div class="small">Final Image</div>
 
             <img
                 id="reference"
-                class="ref">
-
+                class="ref"
+            >
         </div>
 
     </div>
 
+    <div
+        id="countdown"
+        class="countdown hidden"
+    ></div>
 
     <div
         id="opponentStatus"
-        class="status hidden">
-    </div>
-
+        class="status hidden"
+    ></div>
 
     <div
         id="gameInfo"
-        class="info">
-    </div>
-
+        class="info"
+    ></div>
 
     <div
         id="grid"
-        class="gamegrid">
-    </div>
-
+        class="gamegrid"
+    ></div>
 
     <p
         class="small"
-        style="text-align:center;">
-        Tap a box to reveal its image piece.
-        Drag one box onto another to swap only
-        the image pieces.
+        style="text-align:center"
+    >
+        Tap a hidden box to reveal its piece.
+        Drag one piece onto another box to swap them.
+        The boxes themselves never move.
     </p>
 
 </section>
 
-
-<!-- ================= COMPLETE ================= -->
-
+<!-- COMPLETED PREVIEW -->
 <section id="completePreview" class="card hidden">
 
     <h2>🎉 Puzzle Completed!</h2>
@@ -649,66 +616,98 @@ input{
 
     <img
         id="completedImage"
+        src=""
+        alt="Completed final image"
         style="
         display:block;
         width:min(90vw,520px);
+        height:auto;
         max-height:65vh;
         object-fit:contain;
         margin:20px auto;
         border-radius:18px;
         border:4px solid #fbbf24;
-        ">
+        background:#111827;
+        "
+    >
 
     <div
+        class="status"
         id="completedTime"
-        class="status">
-    </div>
+    ></div>
 
     <button
         class="bigbtn primary"
-        onclick="showWinnerCertificate()">
-        VIEW WINNER CERTIFICATE
+        onclick="showCertificateAfterPreview()"
+    >
+        🏆 VIEW WINNER CERTIFICATE
     </button>
 
 </section>
 
-
-<!-- ================= RESULT ================= -->
-
+<!-- RESULT -->
 <section id="result" class="card hidden">
 
     <div
         id="certificate"
-        class="certificate">
+        class="certificate"
+    >
 
         <div
             id="medal"
-            style="font-size:60px;">
+            style="font-size:60px"
+        >
             🥇
         </div>
 
-        <h1 id="resultTitle">
-            GOLD WINNER
-        </h1>
+        <div class="certTitle">
+            CERTIFICATE OF ACHIEVEMENT
+        </div>
 
-        <h2 id="resultName"></h2>
+        <p>
+            This certificate is proudly presented to
+        </p>
+
+        <div
+            id="resultName"
+            class="certName"
+        >
+        </div>
+
+        <div class="certLine"></div>
+
+        <h2 id="resultTitle">
+            GOLD WINNER
+        </h2>
 
         <p id="resultTime"></p>
 
         <p id="resultMode"></p>
 
-        <button
-            class="bigbtn primary"
-            onclick="goHome()">
-            PLAY AGAIN
-        </button>
+        <p>
+            🧩 FIND – PUZZLE
+        </p>
 
     </div>
+
+    <!-- DOWNLOAD CERTIFICATE -->
+    <button
+        class="bigbtn primary"
+        onclick="downloadCertificate()"
+    >
+        📥 DOWNLOAD CERTIFICATE
+    </button>
+
+    <button
+        class="bigbtn secondary"
+        onclick="goHome()"
+    >
+        PLAY AGAIN
+    </button>
 
 </section>
 
 </div>
-
 
 <script>
 
@@ -719,160 +718,58 @@ input{
 const state = {
 
     mode:null,
-
     name:"",
-
     difficulty:2,
 
-    finalImage:null,
+    grid:[],
+    selected:null,
+    revealed:null,
 
-    imageReady:false,
+    startTime:0,
+    timerHandle:null,
+
+    solved:false,
 
     peer:null,
-
     conn:null,
 
     isHost:false,
-
     isJoining:false,
 
     roomId:null,
-
-    inviteUrl:null,
+    inviteUrl:"",
 
     friendName:"",
 
     friendAccepted:false,
-
     friendImageReady:false,
 
     hostStart:false,
-
     friendStart:false,
+
+    myFinished:false,
+    opponentFinished:false,
+
+    myTime:null,
+    opponentTime:null,
 
     seed:0,
 
-    grid:[],
-
-    revealed:null,
-
-    solved:false,
-
-    startTime:0,
-
-    timerHandle:null,
-
-    myTime:null,
-
-    opponentTime:null,
-
-    myFinished:false,
-
-    opponentFinished:false,
-
-    pendingCertificate:null
+    finalImage:"",
+    imageReady:false
 
 };
 
 
 /* =========================================================
-   DEFAULT IMAGE
-========================================================= */
-
-const DEFAULT_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg"
-viewBox="0 0 600 600">
-
-<defs>
-
-<linearGradient
-id="g"
-x1="0"
-x2="1"
-y1="0"
-y2="1">
-
-<stop
-stop-color="#7c3aed"/>
-
-<stop
-offset="1"
-stop-color="#06b6d4"/>
-
-</linearGradient>
-
-</defs>
-
-<rect
-width="600"
-height="600"
-fill="url(#g)"/>
-
-<circle
-cx="120"
-cy="120"
-r="70"
-fill="#fde68a"/>
-
-<circle
-cx="470"
-cy="130"
-r="90"
-fill="#f472b6"/>
-
-<circle
-cx="300"
-cy="300"
-r="125"
-fill="#34d399"/>
-
-<circle
-cx="300"
-cy="300"
-r="80"
-fill="#111827"/>
-
-<text
-x="300"
-y="315"
-text-anchor="middle"
-font-family="Arial"
-font-size="48"
-font-weight="bold"
-fill="white">
-FIND
-</text>
-
-<text
-x="300"
-y="365"
-text-anchor="middle"
-font-family="Arial"
-font-size="32"
-font-weight="bold"
-fill="white">
-PUZZLE
-</text>
-
-</svg>
-`;
-
-state.finalImage =
-    "data:image/svg+xml;charset=utf-8," +
-    encodeURIComponent(DEFAULT_SVG);
-
-
-/* =========================================================
-   SCREEN
+   SHOW SECTION
 ========================================================= */
 
 function show(id){
 
     document
         .querySelectorAll("section")
-        .forEach(section=>{
-            section.classList.add("hidden");
-        });
+        .forEach(s=>s.classList.add("hidden"));
 
     document
         .getElementById(id)
@@ -887,59 +784,9 @@ function show(id){
 function goHome(){
 
     stopTimer();
+    cleanupPeer();
 
-    try{
-
-        if(state.conn){
-            state.conn.close();
-        }
-
-        if(state.peer){
-            state.peer.destroy();
-        }
-
-    }catch(error){}
-
-    location.href =
-        location.pathname;
-
-}
-
-
-/* =========================================================
-   SOLO
-========================================================= */
-
-function startSoloMode(){
-
-    state.mode="solo";
-    state.isJoining=false;
-
-    document
-        .getElementById("nameInput")
-        .value="";
-
-    show("name");
-
-}
-
-
-/* =========================================================
-   FRIEND HOST
-========================================================= */
-
-function startFriendMode(){
-
-    state.mode="friend";
-    state.isJoining=false;
-    state.isHost=false;
-
-    document
-        .getElementById("nameInput")
-        .value="";
-
-    show("name");
-
+    location.href=location.pathname;
 }
 
 
@@ -947,52 +794,85 @@ function startFriendMode(){
    INVITE ACCEPT
 ========================================================= */
 
-function acceptInviteAndJoin(){
-
-    const params =
-        new URLSearchParams(
-            location.search
-        );
+function acceptFriendInvite(){
 
     state.mode="friend";
-
     state.isJoining=true;
 
-    state.roomId =
-        params.get("join");
+    const params =
+        new URLSearchParams(location.search);
+
+    state.roomId=params.get("join");
 
     state.difficulty =
         Number(params.get("size")) || 2;
+
+    document
+        .getElementById("nameTitle")
+        .textContent="Enter Your Name";
 
     document
         .getElementById("nameInput")
         .value="";
 
     show("name");
-
 }
 
 
 /* =========================================================
-   SAVE NAME
+   NAME
 ========================================================= */
+
+function startSoloName(){
+
+    state.mode="solo";
+    state.isJoining=false;
+
+    document
+        .getElementById("nameTitle")
+        .textContent="Enter Your Name";
+
+    document
+        .getElementById("nameInput")
+        .value="";
+
+    show("name");
+}
+
+
+function startFriendName(){
+
+    state.mode="friend";
+    state.isJoining=false;
+
+    document
+        .getElementById("nameTitle")
+        .textContent="Enter Your Name";
+
+    document
+        .getElementById("nameInput")
+        .value="";
+
+    show("name");
+}
+
 
 function saveName(){
 
-    const name =
+    const n =
         document
         .getElementById("nameInput")
         .value
         .trim();
 
-    if(!name){
+    if(!n){
 
         alert("Please enter your name.");
 
         return;
     }
 
-    state.name=name;
+    state.name=n;
 
     if(state.isJoining){
 
@@ -1010,168 +890,172 @@ function saveName(){
 
 
 /* =========================================================
-   HOST IMAGE
+   IMAGE
 ========================================================= */
 
-function loadHostImage(event){
+function loadGalleryImage(event){
 
     const file =
         event.target.files &&
         event.target.files[0];
 
-    if(
-        !file ||
-        !file.type.startsWith("image/")
-    ){
+    if(!file ||
+       !file.type.startsWith("image/")){
+
         return;
     }
 
-    const reader =
-        new FileReader();
+    const reader=new FileReader();
 
-    reader.onload=function(){
+    reader.onload=()=>{
 
-        state.finalImage =
-            reader.result;
-
+        state.finalImage=reader.result;
         state.imageReady=true;
 
-        const preview =
-            document
-            .getElementById(
-                "hostImagePreview"
-            );
+        const p =
+            document.getElementById("imagePreview");
 
-        preview.src =
-            state.finalImage;
-
-        preview.classList.remove(
-            "hidden"
-        );
+        p.src=state.finalImage;
+        p.classList.remove("hidden");
 
         document
-        .getElementById(
-            "hostImageStatus"
-        )
-        .textContent =
-            "🎯 Image locked in!";
+            .getElementById("imageStatus")
+            .textContent=
+            "🎯 Image locked in! Now choose your challenge.";
 
     };
 
     reader.readAsDataURL(file);
-
 }
 
 
-/* =========================================================
-   CHOOSE DIFFICULTY
-========================================================= */
+function loadFriendImage(event){
 
-function chooseDifficulty(size){
+    const file =
+        event.target.files &&
+        event.target.files[0];
 
-    if(!state.imageReady){
-
-        alert(
-            "First select an image from your gallery."
-        );
+    if(!file ||
+       !file.type.startsWith("image/")){
 
         return;
     }
 
-    state.difficulty=size;
+    const reader=new FileReader();
 
-    setupFriendLobby();
+    reader.onload=()=>{
 
+        state.finalImage=reader.result;
+        state.imageReady=true;
+
+        const p =
+            document.getElementById("friendImagePreview");
+
+        p.src=state.finalImage;
+        p.classList.remove("hidden");
+
+        document
+            .getElementById("friendImageStatus")
+            .textContent=
+            "🎯 Your image is ready!";
+
+    };
+
+    reader.readAsDataURL(file);
+}
+
+
+function ensureImage(){
+
+    if(!state.imageReady){
+
+        alert("First select an image from your gallery.");
+
+        return false;
+    }
+
+    return true;
 }
 
 
 /* =========================================================
-   LOBBY
+   DIFFICULTY
+========================================================= */
+
+function chooseDifficulty(size){
+
+    if(!ensureImage()) return;
+
+    state.difficulty=size;
+
+    if(state.mode==="solo"){
+
+        startSoloGame();
+
+    }else{
+
+        setupFriendLobby();
+
+    }
+}
+
+
+/* =========================================================
+   HOST LOBBY
 ========================================================= */
 
 function setupFriendLobby(){
 
+    state.isJoining=false;
+
     document
-    .getElementById(
-        "friendLobbyTitle"
-    )
-    .textContent =
+        .getElementById("friendLobbyTitle")
+        .textContent=
         `Friend VS Me — ${state.difficulty} × ${state.difficulty}`;
 
     document
-    .getElementById(
-        "createInviteArea"
-    )
-    .classList.remove(
-        "hidden"
-    );
+        .getElementById("hostControls")
+        .classList.remove("hidden");
 
     document
-    .getElementById(
-        "inviteArea"
-    )
-    .classList.add(
-        "hidden"
-    );
+        .getElementById("inviteBox")
+        .classList.add("hidden");
 
     show("friendLobby");
-
 }
 
 
 /* =========================================================
-   SHUFFLE
+   PUZZLE SHUFFLE
 ========================================================= */
 
-function shuffle(array,seed){
+function shuffle(a,seed){
 
-    let x =
-        seed >>> 0;
+    let x=seed>>>0;
 
-    for(
-        let i=array.length-1;
-        i>0;
-        i--
-    ){
+    for(let i=a.length-1;i>0;i--){
 
         x =
-            (
-                x * 1664525 +
-                1013904223
-            ) >>> 0;
+            (x*1664525+1013904223)>>>0;
 
-        const j =
-            x % (i+1);
+        const j=x%(i+1);
 
-        [
-            array[i],
-            array[j]
-        ] =
-        [
-            array[j],
-            array[i]
-        ];
-
+        [a[i],a[j]]=
+        [a[j],a[i]];
     }
 
-    return array;
+    return a;
 }
 
 
-function createPuzzle(){
+function makePuzzle(size,seed){
 
-    const total =
-        state.difficulty *
-        state.difficulty;
+    const total=size*size;
 
-    const pieces =
+    const arr=
         [...Array(total).keys()];
 
-    return shuffle(
-        pieces,
-        state.seed
-    );
-
+    return shuffle(arr,seed);
 }
 
 
@@ -1181,369 +1065,303 @@ function createPuzzle(){
 
 function startSoloGame(){
 
-    state.seed =
-        Math.floor(
-            Math.random() *
-            0xffffffff
+    state.seed=
+        Math.floor(Math.random()*0xffffffff);
+
+    state.grid=
+        makePuzzle(
+            state.difficulty,
+            state.seed
         );
 
-    state.grid =
-        createPuzzle();
-
+    state.selected=null;
     state.revealed=null;
-
     state.solved=false;
 
     state.myTime=null;
 
     document
-    .getElementById(
-        "reference"
-    )
-    .src =
-        state.finalImage;
+        .getElementById("reference")
+        .src=state.finalImage;
 
     document
-    .getElementById(
-        "playerLabel"
-    )
-    .textContent =
-        "Player: " +
-        state.name;
+        .getElementById("playerLabel")
+        .textContent=
+        "Player: "+state.name;
 
     document
-    .getElementById(
-        "modeLabel"
-    )
-    .textContent =
+        .getElementById("modeLabel")
+        .textContent=
         `SOLO • ${state.difficulty}×${state.difficulty}`;
 
     document
-    .getElementById(
-        "gameInfo"
-    )
-    .textContent =
+        .getElementById("gameInfo")
+        .textContent=
         "Arrange the pieces to match the Final Image.";
 
     document
-    .getElementById(
-        "opponentStatus"
-    )
-    .classList.add(
-        "hidden"
-    );
+        .getElementById("opponentStatus")
+        .classList.add("hidden");
 
     buildGrid();
 
     show("game");
 
     startTimer();
-
 }
 
 
 /* =========================================================
-   GRID
+   BUILD GRID
 ========================================================= */
 
 function buildGrid(){
 
-    const grid =
-        document
-        .getElementById(
-            "grid"
-        );
+    const grid=
+        document.getElementById("grid");
 
-    grid.style.gridTemplateColumns =
+    grid.style.gridTemplateColumns=
         `repeat(${state.difficulty},1fr)`;
 
     grid.innerHTML="";
 
+    state.grid.forEach((piece,pos)=>{
 
-    state.grid.forEach(
-        (piece,position)=>{
+        const tile=
+            document.createElement("div");
 
-            const tile =
-                document.createElement(
-                    "div"
-                );
+        tile.className="tile";
+        tile.dataset.pos=pos;
 
-            tile.className="tile";
+        const img=
+            document.createElement("div");
 
-            tile.dataset.pos =
-                position;
+        img.className="piece";
 
+        const col=
+            piece%state.difficulty;
 
-            const imagePiece =
-                document.createElement(
-                    "div"
-                );
+        const row=
+            Math.floor(
+                piece/state.difficulty
+            );
 
-            imagePiece.className =
-                "piece";
+        img.style.backgroundImage=
+            `url("${state.finalImage}")`;
 
+        img.style.backgroundSize=
+            `${state.difficulty*100}% ${state.difficulty*100}%`;
 
-            const col =
-                piece %
-                state.difficulty;
+        img.style.backgroundPosition=
+            `${state.difficulty===1?0:
+              col*100/(state.difficulty-1)}% `+
+            `${state.difficulty===1?0:
+              row*100/(state.difficulty-1)}%`;
 
-            const row =
-                Math.floor(
-                    piece /
-                    state.difficulty
-                );
+        const q=
+            document.createElement("div");
 
+        q.className="q";
+        q.textContent="?";
 
-            imagePiece.style.backgroundImage =
-                `url("${state.finalImage}")`;
+        tile.append(img,q);
 
-            imagePiece.style.backgroundSize =
-                `${state.difficulty*100}% ${state.difficulty*100}%`;
+        if(state.revealed===pos){
 
-            imagePiece.style.backgroundPosition =
-                `${
-                    state.difficulty===1
-                    ? 0
-                    : col*100/
-                      (state.difficulty-1)
-                }% ${
-                    state.difficulty===1
-                    ? 0
-                    : row*100/
-                      (state.difficulty-1)
-                }%`;
+            q.classList.add("hidden");
+
+        }else{
+
+            img.classList.add("hidden");
+
+        }
 
 
-            const question =
-                document.createElement(
-                    "div"
-                );
-
-            question.className="q";
-
-            question.textContent="?";
+        let dragging=false;
+        let moved=false;
+        let sx=0;
+        let sy=0;
 
 
-            if(
-                state.revealed ===
-                position
-            ){
+        tile.addEventListener(
+            "pointerdown",
+            e=>{
 
-                question.classList.add(
-                    "hidden"
-                );
+                if(state.solved)return;
 
-            }else{
+                e.preventDefault();
 
-                imagePiece.classList.add(
-                    "hidden"
+                dragging=true;
+                moved=false;
+
+                sx=e.clientX;
+                sy=e.clientY;
+
+                state.selected=pos;
+                state.revealed=pos;
+
+                q.classList.add("hidden");
+                img.classList.remove("hidden");
+
+                tile.setPointerCapture(
+                    e.pointerId
                 );
 
             }
+        );
 
 
-            tile.append(
-                imagePiece,
-                question
-            );
+        tile.addEventListener(
+            "pointermove",
+            e=>{
 
+                if(!dragging ||
+                   state.solved)return;
 
-            let dragging=false;
+                e.preventDefault();
 
-            let moved=false;
+                if(
+                    Math.hypot(
+                        e.clientX-sx,
+                        e.clientY-sy
+                    )>8
+                ){
 
-            let startX=0;
-
-            let startY=0;
-
-
-            tile.addEventListener(
-                "pointerdown",
-                event=>{
-
-                    if(state.solved){
-                        return;
-                    }
-
-                    event.preventDefault();
-
-                    dragging=true;
-
-                    moved=false;
-
-                    startX =
-                        event.clientX;
-
-                    startY =
-                        event.clientY;
-
-                    state.revealed =
-                        position;
-
-                    question.classList.add(
-                        "hidden"
-                    );
-
-                    imagePiece.classList.remove(
-                        "hidden"
-                    );
-
-                    tile.setPointerCapture(
-                        event.pointerId
-                    );
+                    moved=true;
 
                 }
-            );
 
-
-            tile.addEventListener(
-                "pointermove",
-                event=>{
-
-                    if(!dragging){
-                        return;
-                    }
-
-                    if(
-                        Math.hypot(
-                            event.clientX-startX,
-                            event.clientY-startY
-                        ) > 8
-                    ){
-
-                        moved=true;
-
-                    }
-
-                    if(moved){
-
-                        document
-                        .querySelectorAll(
-                            ".tile"
-                        )
-                        .forEach(
-                            t=>{
-                                t.classList.remove(
-                                    "dropTarget"
-                                );
-                            }
-                        );
-
-
-                        const target =
-                            document
-                            .elementFromPoint(
-                                event.clientX,
-                                event.clientY
-                            )
-                            ?.closest(
-                                ".tile"
-                            );
-
-
-                        if(
-                            target &&
-                            target !== tile
-                        ){
-
-                            target.classList.add(
-                                "dropTarget"
-                            );
-
-                        }
-
-                    }
-
-                }
-            );
-
-
-            tile.addEventListener(
-                "pointerup",
-                event=>{
-
-                    if(!dragging){
-                        return;
-                    }
-
-                    dragging=false;
+                if(moved){
 
                     document
-                    .querySelectorAll(
-                        ".tile"
-                    )
-                    .forEach(
-                        t=>{
+                        .querySelectorAll(".tile")
+                        .forEach(t=>
                             t.classList.remove(
                                 "dropTarget"
-                            );
-                        }
-                    );
-
-
-                    const target =
-                        document
-                        .elementFromPoint(
-                            event.clientX,
-                            event.clientY
-                        )
-                        ?.closest(
-                            ".tile"
+                            )
                         );
 
+                    const target=
+                        document
+                        .elementFromPoint(
+                            e.clientX,
+                            e.clientY
+                        )
+                        ?.closest(".tile");
 
                     if(
-                        moved &&
                         target &&
-                        target !== tile
+                        target!==tile
                     ){
 
-                        const targetPosition =
-                            Number(
-                                target.dataset.pos
-                            );
-
-
-                        [
-                            state.grid[position],
-                            state.grid[targetPosition]
-                        ] =
-                        [
-                            state.grid[targetPosition],
-                            state.grid[position]
-                        ];
-
-
-                        state.revealed=null;
-
-                        buildGrid();
-
-
-                        if(
-                            isSolved()
-                        ){
-
-                            finishGame();
-
-                        }
-
-                    }else{
-
-                        state.revealed =
-                            position;
-
-                        buildGrid();
+                        target.classList.add(
+                            "dropTarget"
+                        );
 
                     }
 
                 }
-            );
+
+            }
+        );
 
 
-            grid.appendChild(tile);
+        tile.addEventListener(
+            "pointerup",
+            e=>{
 
-        }
-    );
+                if(!dragging)return;
+
+                e.preventDefault();
+
+                dragging=false;
+
+                const target=
+                    document
+                    .elementFromPoint(
+                        e.clientX,
+                        e.clientY
+                    )
+                    ?.closest(".tile");
+
+                document
+                    .querySelectorAll(".tile")
+                    .forEach(t=>
+                        t.classList.remove(
+                            "dropTarget"
+                        )
+                    );
+
+
+                if(
+                    moved &&
+                    target &&
+                    target!==tile
+                ){
+
+                    const to=
+                        Number(
+                            target.dataset.pos
+                        );
+
+                    [
+                        state.grid[pos],
+                        state.grid[to]
+                    ]=[
+                        state.grid[to],
+                        state.grid[pos]
+                    ];
+
+                    state.selected=null;
+                    state.revealed=null;
+
+                    buildGrid();
+
+                    if(isSolved()){
+
+                        finishGame();
+
+                    }
+
+                }else{
+
+                    state.selected=pos;
+                    state.revealed=pos;
+
+                    buildGrid();
+
+                }
+
+            }
+        );
+
+
+        tile.addEventListener(
+            "pointercancel",
+            ()=>{
+
+                dragging=false;
+
+                document
+                    .querySelectorAll(".tile")
+                    .forEach(t=>
+                        t.classList.remove(
+                            "dropTarget"
+                        )
+                    );
+
+                state.selected=pos;
+                state.revealed=pos;
+
+                buildGrid();
+
+            }
+        );
+
+
+        grid.appendChild(tile);
+
+    });
 
 }
 
@@ -1555,8 +1373,7 @@ function buildGrid(){
 function isSolved(){
 
     return state.grid.every(
-        (piece,index)=>
-            piece===index
+        (piece,i)=>piece===i
     );
 
 }
@@ -1570,33 +1387,22 @@ function startTimer(){
 
     stopTimer();
 
-    state.startTime =
-        Date.now();
+    state.startTime=Date.now();
 
-    state.timerHandle =
-        setInterval(
-            ()=>{
+    state.timerHandle=
+        setInterval(()=>{
 
-                const seconds =
-                    Math.floor(
-                        (
-                            Date.now() -
-                            state.startTime
-                        ) / 1000
-                    );
+            const sec=
+                Math.floor(
+                    (Date.now()-state.startTime)/1000
+                );
 
-                document
-                .getElementById(
-                    "timer"
-                )
-                .textContent =
-                    formatTime(
-                        seconds
-                    );
+            document
+                .getElementById("timer")
+                .textContent=
+                formatTime(sec);
 
-            },
-            250
-        );
+        },250);
 
 }
 
@@ -1605,9 +1411,7 @@ function stopTimer(){
 
     if(state.timerHandle){
 
-        clearInterval(
-            state.timerHandle
-        );
+        clearInterval(state.timerHandle);
 
         state.timerHandle=null;
 
@@ -1616,137 +1420,119 @@ function stopTimer(){
 }
 
 
-function formatTime(seconds){
+function formatTime(sec){
 
-    const minutes =
+    const m=
         String(
-            Math.floor(
-                seconds / 60
-            )
-        ).padStart(
-            2,
-            "0"
-        );
+            Math.floor(sec/60)
+        ).padStart(2,"0");
 
-    const sec =
-        String(
-            seconds % 60
-        ).padStart(
-            2,
-            "0"
-        );
+    const s=
+        String(sec%60)
+        .padStart(2,"0");
 
-    return (
-        minutes +
-        ":" +
-        sec
-    );
+    return `${m}:${s}`;
 
 }
 
 
 /* =========================================================
-   FINISH GAME
+   FINISH
 ========================================================= */
 
 function finishGame(){
 
-    if(state.solved){
-        return;
-    }
+    if(state.solved)return;
 
     state.solved=true;
 
     stopTimer();
 
-    state.myTime =
+    state.myTime=
         Math.floor(
-            (
-                Date.now() -
-                state.startTime
-            ) / 1000
+            (Date.now()-state.startTime)/1000
         );
 
 
-    if(
-        state.mode ===
-        "solo"
-    ){
+    if(state.mode==="solo"){
 
         showCompletionPreview(
             "gold",
+            state.name,
+            state.myTime,
             "MIND SHARPENED. PUZZLE MASTERED!"
         );
 
-        return;
+    }else{
+
+        state.myFinished=true;
+
+        send({
+            type:"finished",
+            name:state.name,
+            time:state.myTime
+        });
+
+        document
+            .getElementById("gameInfo")
+            .textContent=
+            "🎉 You finished! Waiting for your friend…";
+
+        resolveFriendResult();
 
     }
-
-
-    state.myFinished=true;
-
-
-    send({
-        type:"finished",
-        name:state.name,
-        time:state.myTime
-    });
-
-
-    document
-    .getElementById(
-        "gameInfo"
-    )
-    .textContent =
-        "🎉 You finished! Waiting for your friend…";
-
-
-    checkFriendResult();
 
 }
 
 
 /* =========================================================
-   COMPLETION
+   COMPLETION PREVIEW
 ========================================================= */
+
+let pendingCertificate=null;
+
 
 function showCompletionPreview(
     type,
-    message
+    name,
+    time,
+    mode
 ){
 
-    state.pendingCertificate={
-
-        type:type,
-
-        time:state.myTime,
-
-        message:message
-
+    pendingCertificate={
+        type,
+        name,
+        time,
+        mode
     };
 
+    document
+        .getElementById("completedImage")
+        .src=state.finalImage;
 
     document
-    .getElementById(
-        "completedImage"
-    )
-    .src =
-        state.finalImage;
+        .getElementById("completedTime")
+        .textContent=
+        `Completed in ${formatTime(time)}`;
+
+    show("completePreview");
+
+}
 
 
-    document
-    .getElementById(
-        "completedTime"
-    )
-    .textContent =
-        "Completed in " +
-        formatTime(
-            state.myTime
-        );
+function showCertificateAfterPreview(){
 
+    if(!pendingCertificate)return;
 
-    show(
-        "completePreview"
+    const x=pendingCertificate;
+
+    pendingCertificate=null;
+
+    showCertificate(
+        x.type,
+        x.name,
+        x.time,
+        x.mode
     );
 
 }
@@ -1756,85 +1542,105 @@ function showCompletionPreview(
    CERTIFICATE
 ========================================================= */
 
-function showWinnerCertificate(){
+function showCertificate(
+    type,
+    name,
+    time,
+    mode
+){
 
-    const data =
-        state.pendingCertificate;
+    const c=
+        document.getElementById("certificate");
 
-    if(!data){
-        return;
-    }
-
-    state.pendingCertificate=null;
-
-
-    const certificate =
-        document
-        .getElementById(
-            "certificate"
-        );
-
-
-    certificate.className =
-        "certificate " +
-        (
-            data.type ===
-            "silver"
-            ? "silver"
-            : ""
-        );
+    c.className=
+        "certificate "+
+        (type==="silver"?"silver":"");
 
 
     document
-    .getElementById(
-        "medal"
-    )
-    .textContent =
-        data.type ===
-        "gold"
-        ? "🥇"
-        : "🥈";
+        .getElementById("medal")
+        .textContent=
+        type==="gold"?"🥇":"🥈";
 
 
     document
-    .getElementById(
-        "resultTitle"
-    )
-    .textContent =
-        data.type ===
-        "gold"
-        ? "GOLD WINNER"
-        : "SILVER WINNER";
+        .getElementById("resultTitle")
+        .textContent=
+        type==="gold"
+        ?"GOLD WINNER"
+        :"SILVER WINNER";
 
 
     document
-    .getElementById(
-        "resultName"
-    )
-    .textContent =
-        state.name;
+        .getElementById("resultName")
+        .textContent=name;
 
 
     document
-    .getElementById(
-        "resultTime"
-    )
-    .textContent =
-        "Completion Time: " +
-        formatTime(
-            data.time
-        );
+        .getElementById("resultTime")
+        .textContent=
+        "Completion Time: "+
+        formatTime(time);
 
 
     document
-    .getElementById(
-        "resultMode"
-    )
-    .textContent =
-        data.message;
+        .getElementById("resultMode")
+        .textContent=mode;
 
 
     show("result");
+
+}
+
+
+/* =========================================================
+   DOWNLOAD CERTIFICATE
+========================================================= */
+
+async function downloadCertificate(){
+
+    const certificate=
+        document.getElementById("certificate");
+
+    try{
+
+        const canvas=
+            await html2canvas(
+                certificate,
+                {
+                    scale:2,
+                    useCORS:true,
+                    backgroundColor:"#ffffff"
+                }
+            );
+
+        const link=
+            document.createElement("a");
+
+        const safeName=
+            (state.name||"winner")
+            .replace(
+                /[^a-z0-9]/gi,
+                "_"
+            );
+
+        link.download=
+            `FIND_PUZZLE_CERTIFICATE_${safeName}.png`;
+
+        link.href=
+            canvas.toDataURL("image/png");
+
+        link.click();
+
+    }catch(error){
+
+        console.error(error);
+
+        alert(
+            "Certificate download failed. Please try again."
+        );
+
+    }
 
 }
 
@@ -1848,31 +1654,22 @@ function peerConfig(){
     return {
 
         host:"0.peerjs.com",
-
         port:443,
-
         path:"/",
-
         secure:true,
-
         debug:0,
 
         config:{
-
             iceServers:[
-
                 {
                     urls:
                     "stun:stun.l.google.com:19302"
                 },
-
                 {
                     urls:
                     "stun:stun1.l.google.com:19302"
                 }
-
             ]
-
         }
 
     };
@@ -1887,201 +1684,92 @@ function peerConfig(){
 function createRoom(){
 
     state.isHost=true;
+    state.isJoining=false;
 
-    state.seed =
-        Math.floor(
-            Math.random() *
-            0xffffffff
-        );
+    state.hostStart=false;
+    state.friendStart=false;
 
+    state.friendAccepted=false;
+    state.friendImageReady=false;
 
-    const peer =
+    const peer=
         new Peer(
             undefined,
             peerConfig()
         );
 
-
     state.peer=peer;
 
+    document
+        .getElementById("hostControls")
+        .classList.add("hidden");
 
     document
-    .getElementById(
-        "createInviteArea"
-    )
-    .classList.add(
-        "hidden"
-    );
-
+        .getElementById("inviteBox")
+        .classList.remove("hidden");
 
     document
-    .getElementById(
-        "inviteArea"
-    )
-    .classList.remove(
-        "hidden"
-    );
-
-
-    document
-    .getElementById(
-        "hostStatus"
-    )
-    .textContent =
+        .getElementById("hostInviteStatus")
+        .textContent=
         "Connecting to invite service…";
 
 
-    peer.on(
-        "open",
-        id=>{
+    peer.on("open",id=>{
 
-            state.roomId=id;
+        state.roomId=id;
 
-
-            state.inviteUrl =
-                location.origin +
-                location.pathname +
-                "?join=" +
-                encodeURIComponent(id) +
-                "&size=" +
-                state.difficulty;
+        state.inviteUrl=
+            location.origin+
+            location.pathname+
+            `?join=${
+                encodeURIComponent(id)
+            }&size=${
+                state.difficulty
+            }`;
 
 
-            document
-            .getElementById(
-                "hostStatus"
-            )
-            .textContent =
-                "✅ Invite ready. Send it on WhatsApp.";
+        document
+            .getElementById("hostInviteStatus")
+            .textContent=
+            "✅ Invite ready. Send it on WhatsApp.";
 
-        }
-    );
+    });
 
 
-    peer.on(
-        "connection",
-        connection=>{
+    peer.on("connection",c=>{
 
-            if(state.conn){
+        if(state.conn){
 
-                connection.close();
+            c.close();
 
-                return;
-
-            }
-
-            state.conn=
-                connection;
-
-            setupConnection();
+            return;
 
         }
-    );
+
+        state.conn=c;
+
+        setupConnection();
+
+    });
 
 
-    peer.on(
-        "error",
-        error=>{
+    peer.on("error",e=>{
 
-            document
-            .getElementById(
-                "hostStatus"
-            )
-            .textContent =
-                "❌ Connection error: " +
-                (
-                    error.type ||
-                    error.message ||
-                    "unknown"
-                );
+        document
+            .getElementById("hostInviteStatus")
+            .textContent=
+            "❌ Connection error. Please create invite again.";
 
-        }
-    );
-
-}
+    });
 
 
-/* =========================================================
-   WHATSAPP
-========================================================= */
+    peer.on("disconnected",()=>{
 
-function shareInviteOnWhatsApp(){
+        try{
+            peer.reconnect();
+        }catch(e){}
 
-    if(!state.inviteUrl){
-
-        alert(
-            "Please wait until the invite is ready."
-        );
-
-        return;
-    }
-
-
-    const message =
-`🧩 FIND – PUZZLE
-
-I challenge you to play with me! 🔥
-
-Open this invite:
-
-${state.inviteUrl}
-
-Accept → Enter your name → Choose your image → Press START.`;
-
-
-    /*
-      IMPORTANT:
-      After touching WhatsApp,
-      the host page immediately changes
-      INVITE button → START button.
-    */
-
-    document
-    .getElementById(
-        "whatsappButton"
-    )
-    .classList.add(
-        "hidden"
-    );
-
-
-    document
-    .getElementById(
-        "hostStartButton"
-    )
-    .classList.remove(
-        "hidden"
-    );
-
-
-    document
-    .getElementById(
-        "hostStartButton"
-    )
-    .disabled=true;
-
-
-    document
-    .getElementById(
-        "hostStartButton"
-    )
-    .textContent =
-        "⏳ WAITING FOR FRIEND";
-
-
-    document
-    .getElementById(
-        "hostStatus"
-    )
-    .textContent =
-        "📤 Invite sent! Waiting for your friend to accept and select an image…";
-
-
-    window.location.href =
-        "https://wa.me/?text=" +
-        encodeURIComponent(
-            message
-        );
+    });
 
 }
 
@@ -2092,44 +1780,50 @@ Accept → Enter your name → Choose your image → Press START.`;
 
 function joinRoom(){
 
-    const peer =
+    if(
+        state.conn &&
+        state.conn.open
+    )return;
+
+
+    const peer=
         new Peer(
             undefined,
             peerConfig()
         );
 
-
     state.peer=peer;
 
 
-    peer.on(
-        "open",
-        ()=>{
+    peer.on("open",()=>{
 
-            state.conn =
-                peer.connect(
-                    state.roomId,
-                    {
-                        reliable:true
-                    }
-                );
-
-            setupConnection();
-
-        }
-    );
-
-
-    peer.on(
-        "error",
-        ()=>{
-
-            alert(
-                "Could not connect to your friend. Please reopen the invite."
+        state.conn=
+            peer.connect(
+                state.roomId,
+                {reliable:true}
             );
 
-        }
-    );
+        setupConnection();
+
+    });
+
+
+    peer.on("error",()=>{
+
+        alert(
+            "Could not connect to your friend. Please reopen the invite."
+        );
+
+    });
+
+
+    peer.on("disconnected",()=>{
+
+        try{
+            peer.reconnect();
+        }catch(e){}
+
+    });
 
 }
 
@@ -2140,39 +1834,29 @@ function joinRoom(){
 
 function setupConnection(){
 
-    state.conn.on(
-        "open",
-        ()=>{
+    state.conn.on("open",()=>{
 
-            if(state.isHost){
+        if(state.isHost){
 
-                document
-                .getElementById(
-                    "hostStatus"
-                )
-                .textContent =
-                    "👥 Friend connected. Waiting for acceptance…";
+            document
+                .getElementById("hostInviteStatus")
+                .textContent=
+                "👥 Friend connected. Waiting for acceptance…";
 
-            }else{
+        }else{
 
-                send({
+            send({
+                type:"accepted",
+                name:state.name
+            });
 
-                    type:"accepted",
-
-                    name:state.name
-
-                });
-
-                send({
-
-                    type:"requestState"
-
-                });
-
-            }
+            send({
+                type:"requestState"
+            });
 
         }
-    );
+
+    });
 
 
     state.conn.on(
@@ -2181,38 +1865,25 @@ function setupConnection(){
     );
 
 
-    state.conn.on(
-        "close",
-        ()=>{
+    state.conn.on("close",()=>{
 
-            if(
-                state.mode ===
-                "friend"
-            ){
+        const el=
+            state.isHost
+            ?document.getElementById(
+                "hostInviteStatus"
+            )
+            :document.getElementById(
+                "friendReadyStatus"
+            );
 
-                const element =
-                    state.isHost
+        if(el){
 
-                    ? document.getElementById(
-                        "hostStatus"
-                    )
-
-                    : document.getElementById(
-                        "friendReadyStatus"
-                    );
-
-
-                if(element){
-
-                    element.textContent =
-                        "⚠️ Friend disconnected.";
-
-                }
-
-            }
+            el.textContent=
+                "⚠️ Friend disconnected.";
 
         }
-    );
+
+    });
 
 }
 
@@ -2239,159 +1910,120 @@ function send(data){
    NETWORK
 ========================================================= */
 
-function handleNetwork(message){
+function handleNetwork(msg){
 
-    if(
-        !message ||
-        !message.type
-    ){
-
-        return;
-
-    }
+    if(!msg || !msg.type)return;
 
 
     /* ================= HOST ================= */
 
     if(state.isHost){
 
-        if(
-            message.type ===
-            "accepted"
-        ){
+        if(msg.type==="accepted"){
 
-            state.friendName =
-                message.name ||
-                "Friend";
+            state.friendName=
+                msg.name || "Friend";
 
             state.friendAccepted=true;
 
 
             document
-            .getElementById(
-                "hostFriendName"
-            )
-            .textContent =
+                .getElementById(
+                    "hostFriendLabel"
+                )
+                .textContent=
                 state.friendName;
 
 
             document
-            .getElementById(
-                "hostFriendAccepted"
-            )
-            .textContent =
+                .getElementById(
+                    "hostFriendAccepted"
+                )
+                .textContent=
                 "✅ ACCEPTED";
 
 
             document
-            .getElementById(
-                "hostStatus"
-            )
-            .textContent =
-                "✅ Friend accepted successfully! Waiting for their image…";
+                .getElementById(
+                    "hostInviteStatus"
+                )
+                .textContent=
+                "✅ Friend accepted! Waiting for their image…";
 
 
             send({
-
-                type:
-                    "hostAccepted",
-
-                hostName:
-                    state.name,
-
-                difficulty:
-                    state.difficulty,
-
-                seed:
-                    state.seed
-
+                type:"hostAccepted",
+                hostName:state.name,
+                difficulty:state.difficulty,
+                seed:state.seed
             });
+
 
         }
 
 
-        else if(
-            message.type ===
-            "imageReady"
-        ){
+        else if(msg.type==="imageReady"){
 
             state.friendImageReady=true;
 
 
             document
-            .getElementById(
-                "hostFriendImage"
-            )
-            .textContent =
+                .getElementById(
+                    "hostFriendImage"
+                )
+                .textContent=
                 "✅ SELECTED";
 
 
             document
-            .getElementById(
-                "hostStatus"
-            )
-            .textContent =
-                "🎯 Friend selected an image. Both players can now press START.";
+                .getElementById(
+                    "hostInviteStatus"
+                )
+                .textContent=
+                "🎯 Friend selected an image. START is ready!";
 
 
-            /*
-              IMPORTANT:
-              START button becomes enabled
-              only after friend image is ready.
-            */
-
-            enableHostStart();
+            showHostStart();
 
 
             send({
-
-                type:
-                    "hostImageReady"
-
+                type:"hostImageReady"
             });
 
         }
 
 
-        else if(
-            message.type ===
-            "friendStart"
-        ){
+        else if(msg.type==="friendStart"){
 
             state.friendStart=true;
 
 
             document
-            .getElementById(
-                "hostFriendStart"
-            )
-            .textContent =
+                .getElementById(
+                    "hostFriendStart"
+                )
+                .textContent=
                 "✅ STARTED";
 
 
             document
-            .getElementById(
-                "hostStatus"
-            )
-            .textContent =
-                "🚦 Friend pressed START. Now press START GAME on your phone.";
+                .getElementById(
+                    "hostInviteStatus"
+                )
+                .textContent=
+                "🔥 Friend pressed START. Waiting for you…";
 
-            enableHostStart();
 
             maybeStartBoth();
 
         }
 
 
-        else if(
-            message.type ===
-            "requestState"
-        ){
+        else if(msg.type==="requestState"){
 
             send({
 
-                type:
-                    "hostState",
+                type:"hostState",
 
                 accepted:
                     state.friendAccepted,
@@ -2419,17 +2051,13 @@ function handleNetwork(message){
         }
 
 
-        else if(
-            message.type ===
-            "finished"
-        ){
+        else if(msg.type==="finished"){
 
             state.opponentFinished=true;
 
-            state.opponentTime =
-                message.time;
+            state.opponentTime=msg.time;
 
-            checkFriendResult();
+            resolveFriendResult();
 
         }
 
@@ -2440,127 +2068,136 @@ function handleNetwork(message){
 
     else{
 
-        if(
-            message.type ===
-            "hostAccepted"
-        ){
+        if(msg.type==="hostAccepted"){
 
-            state.friendName =
-                message.hostName;
+            state.friendName=
+                msg.hostName;
 
-            state.difficulty =
-                message.difficulty ||
+            state.difficulty=
+                msg.difficulty ||
                 state.difficulty;
 
-            state.seed =
-                message.seed ||
+            state.seed=
+                msg.seed ||
                 state.seed;
 
 
             document
-            .getElementById(
-                "friendReadyStatus"
-            )
-            .textContent =
-                "✅ Friend accepted you. Waiting for both players to START.";
+                .getElementById(
+                    "friendReadyStatus"
+                )
+                .textContent=
+                "✅ Friend accepted you. Waiting for both to START.";
 
         }
 
 
-        else if(
-            message.type ===
-            "hostImageReady"
-        ){
+        else if(msg.type==="hostImageReady"){
 
             document
-            .getElementById(
-                "friendHostReady"
-            )
-            .textContent =
-                "✅ IMAGE READY";
-
-
-            document
-            .getElementById(
-                "friendReadyStatus"
-            )
-            .textContent =
-                "🎯 Both images are ready. Press START!";
-
-        }
-
-
-        else if(
-            message.type ===
-            "hostState"
-        ){
-
-            state.friendName =
-                message.friendName ||
-                state.friendName;
-
-            state.difficulty =
-                message.difficulty ||
-                state.difficulty;
-
-            state.seed =
-                message.seed ||
-                state.seed;
-
-
-            if(
-                message.hostStart
-            ){
-
-                document
                 .getElementById(
                     "friendHostReady"
                 )
-                .textContent =
+                .textContent=
+                "✅ IMAGE READY";
+
+        }
+
+
+        /* IMPORTANT FIX:
+           HOST START MESSAGE */
+        else if(msg.type==="hostStart"){
+
+            state.hostStart=true;
+
+
+            document
+                .getElementById(
+                    "friendHostReady"
+                )
+                .textContent=
+                "✅ STARTED";
+
+
+            document
+                .getElementById(
+                    "friendReadyStatus"
+                )
+                .textContent=
+                "🔥 Friend pressed START. Waiting for you…";
+
+
+            maybeStartBoth();
+
+        }
+
+
+        else if(msg.type==="hostState"){
+
+            state.friendName=
+                msg.friendName ||
+                state.friendName;
+
+            state.difficulty=
+                msg.difficulty ||
+                state.difficulty;
+
+            state.seed=
+                msg.seed ||
+                state.seed;
+
+
+            if(msg.imageReady){
+
+                document
+                    .getElementById(
+                        "friendHostReady"
+                    )
+                    .textContent=
+                    "✅ IMAGE READY";
+
+            }
+
+
+            if(msg.hostStart){
+
+                state.hostStart=true;
+
+                document
+                    .getElementById(
+                        "friendHostReady"
+                    )
+                    .textContent=
                     "✅ STARTED";
 
             }
 
 
-            if(
-                message.imageReady
-            ){
+            if(msg.friendStart){
 
-                document
-                .getElementById(
-                    "friendHostReady"
-                )
-                .textContent =
-                    "✅ IMAGE READY";
+                state.friendStart=true;
 
             }
 
         }
 
 
-        else if(
-            message.type ===
-            "startAt"
-        ){
+        else if(msg.type==="startAt"){
 
             startFriendGame(
-                message.startAt
+                msg.startAt
             );
 
         }
 
 
-        else if(
-            message.type ===
-            "finished"
-        ){
+        else if(msg.type==="finished"){
 
             state.opponentFinished=true;
 
-            state.opponentTime =
-                message.time;
+            state.opponentTime=msg.time;
 
-            checkFriendResult();
+            resolveFriendResult();
 
         }
 
@@ -2570,39 +2207,55 @@ function handleNetwork(message){
 
 
 /* =========================================================
-   ENABLE HOST START
+   WHATSAPP
 ========================================================= */
 
-function enableHostStart(){
+function shareWhatsApp(){
 
-    const button =
-        document
-        .getElementById(
-            "hostStartButton"
+    if(!state.inviteUrl){
+
+        alert(
+            "Please wait until the invite is ready."
         );
 
+        return;
 
-    /*
-      Start button is visible after
-      WhatsApp sharing.
+    }
 
-      It becomes ENABLED after
-      friend image is selected.
-    */
+
+    const text=
+`🧩 FIND – PUZZLE
+
+I challenge you to play with me! 🔥
+
+Open this invite:
+${state.inviteUrl}
+
+Accept → Enter your name → Choose your image → Press START.`;
+
+    window.location.href=
+        "https://wa.me/?text="+
+        encodeURIComponent(text);
+
+}
+
+
+/* =========================================================
+   HOST START BUTTON
+========================================================= */
+
+function showHostStart(){
 
     if(
         state.friendAccepted &&
         state.friendImageReady
     ){
 
-        button.classList.remove(
-            "hidden"
-        );
-
-        button.disabled=false;
-
-        button.textContent =
-            "▶️ START GAME";
+        document
+            .getElementById(
+                "hostStartBtn"
+            )
+            .classList.remove("hidden");
 
     }
 
@@ -2613,27 +2266,15 @@ function enableHostStart(){
    HOST START
 ========================================================= */
 
-function hostPressStart(){
+function hostStart(){
 
     if(
-        !state.friendAccepted
-    ){
-
-        alert(
-            "Wait for your friend to accept the invite."
-        );
-
-        return;
-
-    }
-
-
-    if(
+        !state.friendAccepted ||
         !state.friendImageReady
     ){
 
         alert(
-            "Wait for your friend to select an image."
+            "Wait for your friend to accept and select an image."
         );
 
         return;
@@ -2644,103 +2285,31 @@ function hostPressStart(){
     state.hostStart=true;
 
 
-    const button =
-        document
-        .getElementById(
-            "hostStartButton"
+    const btn=
+        document.getElementById(
+            "hostStartBtn"
         );
 
-
-    button.textContent =
+    btn.textContent=
         "⏳ WAITING FOR FRIEND";
 
-
-    button.disabled=true;
+    btn.disabled=true;
 
 
     document
-    .getElementById(
-        "hostStatus"
-    )
-    .textContent =
+        .getElementById(
+            "hostInviteStatus"
+        )
+        .textContent=
         "You are ready. Waiting for your friend to press START…";
 
 
     send({
-
-        type:
-            "hostStart"
-
+        type:"hostStart"
     });
 
 
     maybeStartBoth();
-
-}
-
-
-/* =========================================================
-   FRIEND IMAGE
-========================================================= */
-
-function loadFriendImage(event){
-
-    const file =
-        event.target.files &&
-        event.target.files[0];
-
-
-    if(
-        !file ||
-        !file.type.startsWith(
-            "image/"
-        )
-    ){
-
-        return;
-
-    }
-
-
-    const reader =
-        new FileReader();
-
-
-    reader.onload=function(){
-
-        state.finalImage =
-            reader.result;
-
-        state.imageReady=true;
-
-
-        const preview =
-            document
-            .getElementById(
-                "friendImagePreview"
-            );
-
-
-        preview.src =
-            state.finalImage;
-
-
-        preview.classList.remove(
-            "hidden"
-        );
-
-
-        document
-        .getElementById(
-            "friendImageStatus"
-        )
-        .textContent =
-            "🎯 Your image is ready!";
-
-    };
-
-
-    reader.readAsDataURL(file);
 
 }
 
@@ -2762,24 +2331,19 @@ function friendImageDone(){
     }
 
 
+    show("friendReady");
+
+
     document
-    .getElementById(
-        "friendReadyStatus"
-    )
-    .textContent =
+        .getElementById(
+            "friendReadyStatus"
+        )
+        .textContent=
         "Waiting for your friend to be ready…";
 
 
-    show(
-        "friendReady"
-    );
-
-
     send({
-
-        type:
-            "imageReady"
-
+        type:"imageReady"
     });
 
 }
@@ -2789,7 +2353,7 @@ function friendImageDone(){
    FRIEND START
 ========================================================= */
 
-function friendPressStart(){
+function friendStart(){
 
     if(!state.imageReady){
 
@@ -2805,33 +2369,27 @@ function friendPressStart(){
     state.friendStart=true;
 
 
-    const button =
-        document
-        .getElementById(
-            "friendStartButton"
+    const btn=
+        document.getElementById(
+            "friendStartBtn"
         );
 
-
-    button.textContent =
+    btn.textContent=
         "⏳ WAITING FOR FRIEND";
 
-
-    button.disabled=true;
+    btn.disabled=true;
 
 
     document
-    .getElementById(
-        "friendReadyStatus"
-    )
-    .textContent =
+        .getElementById(
+            "friendReadyStatus"
+        )
+        .textContent=
         "You are ready. Waiting for your friend…";
 
 
     send({
-
-        type:
-            "friendStart"
-
+        type:"friendStart"
     });
 
 
@@ -2841,35 +2399,26 @@ function friendPressStart(){
 
 
 /* =========================================================
-   START BOTH
+   BOTH START
 ========================================================= */
 
 function maybeStartBoth(){
 
     if(
-        state.isHost &&
         state.hostStart &&
         state.friendStart
     ){
 
-        const startAt =
-            Date.now() + 3000;
-
+        const startAt=
+            Date.now()+3500;
 
         send({
-
-            type:
-                "startAt",
-
-            startAt:
-                startAt
-
+            type:"startAt",
+            startAt:startAt
         });
 
 
-        startFriendGame(
-            startAt
-        );
+        startFriendGame(startAt);
 
     }
 
@@ -2880,60 +2429,58 @@ function maybeStartBoth(){
    FRIEND GAME
 ========================================================= */
 
-function startFriendGame(
-    startAt
-){
+function startFriendGame(startAt){
 
     state.mode="friend";
 
+    state.grid=
+        makePuzzle(
+            state.difficulty,
+            state.seed
+        );
 
-    state.grid =
-        createPuzzle();
 
-
+    state.selected=null;
     state.revealed=null;
 
     state.solved=false;
 
     state.myFinished=false;
-
     state.opponentFinished=false;
 
     state.myTime=null;
-
     state.opponentTime=null;
 
 
     document
-    .getElementById(
-        "reference"
-    )
-    .src =
+        .getElementById(
+            "reference"
+        )
+        .src=
         state.finalImage;
 
 
     document
-    .getElementById(
-        "playerLabel"
-    )
-    .textContent =
-        "You: " +
-        state.name;
+        .getElementById(
+            "playerLabel"
+        )
+        .textContent=
+        "You: "+state.name;
 
 
     document
-    .getElementById(
-        "modeLabel"
-    )
-    .textContent =
+        .getElementById(
+            "modeLabel"
+        )
+        .textContent=
         `FRIEND VS ME • ${state.difficulty}×${state.difficulty} • Friend: ${state.friendName}`;
 
 
     document
-    .getElementById(
-        "gameInfo"
-    )
-    .textContent =
+        .getElementById(
+            "gameInfo"
+        )
+        .textContent=
         "Get ready…";
 
 
@@ -2942,33 +2489,67 @@ function startFriendGame(
     show("game");
 
 
-    const wait =
-        Math.max(
-            0,
-            (
-                startAt ||
-                Date.now()
-            ) -
-            Date.now()
+    const countdown=
+        document.getElementById(
+            "countdown"
         );
 
+    countdown.classList.remove("hidden");
 
-    setTimeout(
-        ()=>{
 
-            document
+    function tick(){
+
+        const remaining=
+            Math.ceil(
+                (startAt-Date.now())/1000
+            );
+
+
+        if(remaining>0){
+
+            countdown.textContent=
+                remaining;
+
+            return;
+
+        }
+
+
+        countdown.classList.add("hidden");
+
+        document
             .getElementById(
                 "gameInfo"
             )
-            .textContent =
-                "🚀 GO!";
+            .textContent=
+            "🚀 GO!";
 
 
-            startTimer();
+        startTimer();
 
-        },
-        wait
-    );
+    }
+
+
+    tick();
+
+    const interval=
+        setInterval(()=>{
+
+            if(
+                Date.now()>=startAt
+            ){
+
+                clearInterval(interval);
+
+                tick();
+
+            }else{
+
+                tick();
+
+            }
+
+        },100);
 
 }
 
@@ -2977,7 +2558,7 @@ function startFriendGame(
    FRIEND RESULT
 ========================================================= */
 
-function checkFriendResult(){
+function resolveFriendResult(){
 
     if(
         state.myFinished &&
@@ -2985,12 +2566,14 @@ function checkFriendResult(){
     ){
 
         if(
-            state.myTime <=
+            state.myTime<=
             state.opponentTime
         ){
 
             showCompletionPreview(
                 "gold",
+                state.name,
+                state.myTime,
                 "BRILLIANT MIND. YOU FINISHED FIRST!"
             );
 
@@ -2998,6 +2581,8 @@ function checkFriendResult(){
 
             showCompletionPreview(
                 "silver",
+                state.name,
+                state.myTime,
                 "GREAT THINKING. YOUR FRIEND FINISHED FIRST."
             );
 
@@ -3005,24 +2590,20 @@ function checkFriendResult(){
 
     }
 
-    else if(
-        !state.myFinished
-    ){
+    else if(!state.myFinished){
 
         document
-        .getElementById(
-            "opponentStatus"
-        )
-        .classList.remove(
-            "hidden"
-        );
+            .getElementById(
+                "opponentStatus"
+            )
+            .classList.remove("hidden");
 
 
         document
-        .getElementById(
-            "opponentStatus"
-        )
-        .textContent =
+            .getElementById(
+                "opponentStatus"
+            )
+            .textContent=
             "🏁 Your friend finished. Finish your puzzle!";
 
     }
@@ -3031,48 +2612,72 @@ function checkFriendResult(){
 
 
 /* =========================================================
-   AUTO INVITE PAGE
+   CLEANUP
+========================================================= */
+
+function cleanupPeer(){
+
+    try{
+
+        if(state.conn)
+            state.conn.close();
+
+        if(state.peer)
+            state.peer.destroy();
+
+    }catch(e){}
+
+}
+
+
+/* =========================================================
+   AUTO INVITE
 ========================================================= */
 
 window.addEventListener(
     "load",
     ()=>{
 
-        const params =
+        const params=
             new URLSearchParams(
                 location.search
             );
 
 
-        if(
-            params.get("join")
-        ){
+        if(params.get("join")){
 
             state.mode="friend";
 
             state.isJoining=true;
 
-            state.roomId =
+            state.roomId=
                 params.get("join");
 
-            state.difficulty =
+            state.difficulty=
                 Number(
                     params.get("size")
                 ) || 2;
 
 
             document
-            .getElementById(
-                "home"
-            )
-            .classList.add(
-                "hidden"
-            );
+                .getElementById(
+                    "acceptInvite"
+                )
+                .classList.remove(
+                    "hidden"
+                );
 
 
-            show(
-                "acceptInvite"
-            );
+            document
+                .getElementById(
+                    "home"
+                )
+                .classList.add(
+                    "hidden"
+                );
+
+
+            show("acceptInvite");
 
         }
 
