@@ -80,20 +80,39 @@ ol{line-height:1.7}
 
 <section id="friendLobby" class="card hidden">
   <h2 id="friendLobbyTitle">Friend VS Me</h2>
+  <p class="subtitle">Invite exactly one friend. Your friend will choose their own image.</p>
   <div id="hostControls">
-    <p class="subtitle">Create a room and send the invitation to exactly ONE friend.</p>
     <button class="bigbtn primary" onclick="createRoom()">CREATE INVITE</button>
   </div>
-  <div id="joinControls" class="hidden">
-    <div class="status" id="joinStatus">Connecting...</div>
-    <button class="bigbtn primary" onclick="joinRoom()">ACCEPT INVITE</button>
-  </div>
   <div id="inviteBox" class="hidden">
-    <div class="status">Waiting for your friend to accept…</div>
-    <input id="inviteLink" readonly>
-    <button class="bigbtn primary" onclick="shareWhatsApp()">INVITE ONE FRIEND ON WHATSAPP</button>
+    <div class="status" id="hostInviteStatus">Waiting for your friend to accept…</div>
+    <div class="readyRow"><span>You</span><span class="ok">READY</span></div>
+    <div class="readyRow"><span id="hostFriendLabel">Friend</span><span id="hostFriendAccepted" class="wait">WAITING</span></div>
+    <div class="readyRow"><span>Friend image</span><span id="hostFriendImage" class="wait">WAITING</span></div>
+    <div class="readyRow"><span>Friend START</span><span id="hostFriendStart" class="wait">WAITING</span></div>
+    <button id="whatsappBtn" class="bigbtn primary" onclick="shareWhatsApp()">📱 INVITE ON WHATSAPP</button>
+    <button id="hostStartBtn" class="bigbtn primary hidden" onclick="hostStart()">▶️ START GAME</button>
   </div>
   <button class="bigbtn secondary" onclick="goHome()">CANCEL</button>
+</section>
+
+<section id="friendImage" class="card hidden">
+  <h2>🖼️ Choose Your Image</h2>
+  <p class="subtitle">Choose an image from YOUR phone. Your friend has chosen their own image.</p>
+  <label for="friendImageInput" class="bigbtn primary" style="display:block;text-align:center;cursor:pointer;">📸 SELECT FROM GALLERY</label>
+  <input id="friendImageInput" type="file" accept="image/*" onchange="loadFriendImage(event)" style="display:none;">
+  <img id="friendImagePreview" class="ref hidden" style="display:block;margin:10px auto;width:180px;height:180px" alt="Friend image">
+  <div class="status" id="friendImageStatus">✨ Select your image.</div>
+  <button class="bigbtn primary" onclick="friendImageDone()">CONTINUE</button>
+</section>
+
+<section id="friendReady" class="card hidden">
+  <h2>🚦 Ready to Start</h2>
+  <div class="status" id="friendReadyStatus">Waiting for your friend…</div>
+  <div class="readyRow"><span>You</span><span class="ok">IMAGE READY</span></div>
+  <div class="readyRow"><span>Friend</span><span id="friendHostReady" class="wait">WAITING</span></div>
+  <button id="friendStartBtn" class="bigbtn primary" onclick="friendStart()">▶️ START GAME</button>
+  <p class="small">Both players must press START. The game starts on both phones together.</p>
 </section>
 
 <section id="game" class="card hidden">
@@ -183,8 +202,7 @@ const IMAGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"
 state.finalImage="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(IMAGE_SVG);
 
 function acceptFriendInvite(){
-  // An invite link always enters FRIEND VS ME directly.
-  state.mode="friend";
+  state.mode="friend"; state.isJoining=true;
   const params=new URLSearchParams(location.search);
   state.roomId=params.get("join");
   state.difficulty=Number(params.get("size"))||2;
@@ -213,7 +231,8 @@ function saveName(){
   const n=document.getElementById("nameInput").value.trim();
   if(!n){alert("Please enter your name.");return}
   state.name=n;
-  show("difficulty");
+  if(state.isJoining){ show("friendImage"); joinRoom(); }
+  else show("difficulty");
 }
 function loadGalleryImage(event){
   const file=event.target.files && event.target.files[0];
@@ -236,26 +255,14 @@ function ensureImage(){
 function chooseDifficulty(size){
   if(!ensureImage()) return;
   state.difficulty=size;
-  if(state.mode==="solo"){
-    startSoloGame();
-  }else{
-    setupFriendLobby();
-  }
+  if(state.mode==="solo") startSoloGame();
+  else setupFriendLobby();
 }
-
 function setupFriendLobby(){
-  document.getElementById("friendLobbyTitle").textContent =
-    `Friend VS Me — ${state.difficulty} × ${state.difficulty}`;
+  state.isJoining=false;
+  document.getElementById("friendLobbyTitle").textContent=`Friend VS Me — ${state.difficulty} × ${state.difficulty}`;
   document.getElementById("hostControls").classList.remove("hidden");
-  document.getElementById("joinControls").classList.add("hidden");
   document.getElementById("inviteBox").classList.add("hidden");
-  const params=new URLSearchParams(location.search);
-  if(params.get("join")){
-    state.roomId=params.get("join");
-    document.getElementById("hostControls").classList.add("hidden");
-    document.getElementById("joinControls").classList.remove("hidden");
-    document.getElementById("joinStatus").textContent="Invitation found. Tap ACCEPT INVITE.";
-  }
   show("friendLobby");
 }
 
@@ -479,17 +486,10 @@ function finishGame(){
   if(state.mode==="solo"){
     showCompletionPreview("gold",state.name,state.myTime,"MIND SHARPENED. PUZZLE MASTERED!");
   }else{
+    state.myFinished=true;
     send({type:"finished",name:state.name,time:state.myTime});
-    if(state.opponentFinished){
-      if(state.opponentTime < state.myTime){
-        showCompletionPreview("silver",state.name,state.myTime,"GREAT THINKING. YOU CRACKED IT!");
-      }else{
-        showCompletionPreview("gold",state.name,state.myTime,"BRILLIANT MIND. PUZZLE MASTERED!");
-      }
-    }else{
-      document.getElementById("gameInfo").textContent="🎉 You finished first! Waiting for your friend to finish...";
-      state.myFinished=true;
-    }
+    document.getElementById("gameInfo").textContent="🎉 You finished! Waiting for your friend…";
+    resolveFriendResult();
   }
 }
 let pendingCertificate=null;
@@ -522,203 +522,153 @@ function showCertificate(type,name,time,mode){
 
 /* ---------------- FRIEND MODE ---------------- */
 
+function peerConfig(){return {
+  host:"0.peerjs.com",port:443,path:"/",secure:true,debug:0,
+  config:{iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:stun1.l.google.com:19302"}]}
+}}
 function createRoom(){
-  state.isHost=true;
-  state.seed=Math.floor(Math.random()*0xffffffff);
-  const peer=new Peer(undefined,{
-    host:"0.peerjs.com",
-    port:443,
-    path:"/",
-    secure:true,
-    debug:2,
-    config:{
-      iceServers:[
-        {urls:"stun:stun.l.google.com:19302"},
-        {urls:"stun:stun1.l.google.com:19302"}
-      ]
-    }
-  });
-  state.peer=peer;
+  state.isHost=true; state.isJoining=false; state.hostStart=false; state.friendStart=false;
+  const peer=new Peer(undefined,peerConfig()); state.peer=peer;
+  document.getElementById("hostControls").classList.add("hidden");
+  document.getElementById("inviteBox").classList.remove("hidden");
+  document.getElementById("hostInviteStatus").textContent="Connecting to invite service…";
   peer.on("open",id=>{
     state.roomId=id;
-    const url=location.origin+location.pathname+
-      `?join=${encodeURIComponent(id)}&size=${state.difficulty}`;
-    document.getElementById("inviteLink").value=url;
-    document.getElementById("inviteBox").classList.remove("hidden");
+    state.inviteUrl=location.origin+location.pathname+`?join=${encodeURIComponent(id)}&size=${state.difficulty}`;
+    document.getElementById("hostInviteStatus").textContent="✅ Invite ready. Send it on WhatsApp.";
   });
-  peer.on("connection",conn=>{
-    if(state.conn){conn.close();return} // exactly one friend
-    state.conn=conn;
-    setupConnection();
+  peer.on("connection",c=>{
+    if(state.conn){c.close();return}
+    state.conn=c; setupConnection();
   });
   peer.on("error",e=>{
-    console.error("PeerJS error:",e);
-    const msg=e && e.message ? e.message : "Unknown connection error";
-    document.getElementById("inviteBox").classList.remove("hidden");
-    document.querySelector("#inviteBox .status").textContent=
-      "⚠️ Connection server error: "+msg+". Tap CREATE INVITE again.";
-    try{peer.destroy();}catch(_){}
-    state.peer=null;
+    document.getElementById("hostInviteStatus").textContent="❌ Connection error: "+(e.type||e.message||"unknown")+". Tap CREATE INVITE again.";
   });
-  peer.on("disconnected",()=>{
-    try{peer.reconnect();}catch(_){}
-  });
+  peer.on("disconnected",()=>{try{peer.reconnect()}catch(e){}});
 }
-
 function joinRoom(){
-  const params=new URLSearchParams(location.search);
-  state.roomId=params.get("join");
-  state.difficulty=Number(params.get("size"))||2;
-  const peer=new Peer(undefined,{
-    host:"0.peerjs.com",
-    port:443,
-    path:"/",
-    secure:true,
-    debug:2,
-    config:{
-      iceServers:[
-        {urls:"stun:stun.l.google.com:19302"},
-        {urls:"stun:stun1.l.google.com:19302"}
-      ]
-    }
-  });
-  state.peer=peer;
-  peer.on("open",()=>{
-    state.conn=peer.connect(state.roomId,{reliable:true});
-    setupConnection();
-  });
-  peer.on("error",e=>{
-    console.error("Join error:",e);
-    document.getElementById("joinStatus").textContent=
-      "❌ Could not connect. Ask the host to create a NEW invite.";
-    alert("Could not connect to the room. Please ask your friend to create a NEW invite.");
-    try { peer.destroy(); } catch (_) {}
-    state.peer=null;
-  });
-  peer.on("disconnected",()=>{
-    try { peer.reconnect(); } catch (_) {}
-  });
+  if(state.conn && state.conn.open)return;
+  const peer=new Peer(undefined,peerConfig()); state.peer=peer;
+  peer.on("open",()=>{state.conn=peer.connect(state.roomId,{reliable:true});setupConnection()});
+  peer.on("error",e=>{alert("Could not connect to your friend. Please reopen the invite.");});
+  peer.on("disconnected",()=>{try{peer.reconnect()}catch(e){}});
 }
-
 function setupConnection(){
   state.conn.on("open",()=>{
     if(state.isHost){
-      send({type:"hello",hostName:state.name,size:state.difficulty,seed:state.seed,image:state.finalImage});
-      startHostWaiting();
+      document.getElementById("hostInviteStatus").textContent="👥 Friend connected. Waiting for acceptance…";
     }else{
-      send({type:"join",name:state.name});
+      send({type:"accepted",name:state.name});
+      if(state.imageReady)send({type:"imageReady"});
+      send({type:"requestState"});
     }
   });
   state.conn.on("data",handleNetwork);
   state.conn.on("close",()=>{
-    document.getElementById("opponentStatus").classList.remove("hidden");
-    document.getElementById("opponentStatus").textContent="⚠️ Your friend disconnected.";
+    if(state.mode==="friend"){
+      const el=state.isHost?document.getElementById("hostInviteStatus"):document.getElementById("friendReadyStatus");
+      if(el)el.textContent="⚠️ Friend disconnected.";
+    }
   });
 }
-
-function send(data){
-  if(state.conn && state.conn.open) state.conn.send(data);
-}
-
-function startHostWaiting(){
-  document.getElementById("hostControls").classList.add("hidden");
-  document.getElementById("inviteBox").classList.remove("hidden");
-  document.querySelector("#inviteBox .status").textContent="Friend connected! Starting game...";
-}
-
+function send(data){if(state.conn&&state.conn.open)state.conn.send(data)}
 function handleNetwork(msg){
-  if(msg.type==="hello"){
-    state.difficulty=msg.size;
-    state.seed=msg.seed;
-    state.finalImage=msg.image || state.finalImage;
-    state.imageReady=true;
-    state.friendName=msg.hostName;
-    send({type:"hostReady",name:state.name});
-  }
-  else if(msg.type==="join"){
-    if(!state.isHost)return;
-    state.friendName=msg.name;
-    send({type:"start",hostName:state.name,friendName:state.friendName,
-      size:state.difficulty,seed:state.seed,image:state.finalImage});
-    setTimeout(()=>startFriendGame(),200);
-  }
-  else if(msg.type==="hostReady"){
-    state.friendName=msg.name;
-    send({type:"start",hostName:state.name,friendName:state.friendName,
-      size:state.difficulty,seed:state.seed,image:state.finalImage});
-    setTimeout(()=>startFriendGame(),200);
-  }
-  else if(msg.type==="start"){
-    state.difficulty=msg.size; state.seed=msg.seed;
-    if(msg.image){state.finalImage=msg.image;state.imageReady=true;}
-    state.friendName=state.isHost?msg.friendName:msg.hostName;
-    startFriendGame();
-  }
-  else if(msg.type==="finished"){
-    state.opponentFinished=true;
-    state.opponentTime=msg.time;
-    if(state.myFinished){
-      if(state.myTime < state.opponentTime){
-        showCompletionPreview("gold",state.name,state.myTime,"BRILLIANT MIND. PUZZLE MASTERED!");
-      }else{
-        showCompletionPreview("silver",state.name,state.myTime,"GREAT THINKING. YOU CRACKED IT!");
-      }
-    }else{
-      document.getElementById("opponentStatus").classList.remove("hidden");
-      document.getElementById("opponentStatus").textContent=
-        "Your friend has finished! Finish your puzzle.";
+  if(!msg||!msg.type)return;
+  if(state.isHost){
+    if(msg.type==="accepted"){
+      state.friendName=msg.name||"Friend"; state.friendAccepted=true;
+      document.getElementById("hostFriendLabel").textContent=state.friendName;
+      document.getElementById("hostFriendAccepted").textContent="✅ ACCEPTED";
+      document.getElementById("hostInviteStatus").textContent="✅ Friend accepted successfully! Waiting for their image…";
+      send({type:"hostAccepted",hostName:state.name,difficulty:state.difficulty,seed:state.seed});
+    }else if(msg.type==="imageReady"){
+      state.friendImageReady=true;
+      document.getElementById("hostFriendImage").textContent="✅ SELECTED";
+      document.getElementById("hostInviteStatus").textContent="🎯 Friend selected an image. Both players can now press START.";
+      if(state.friendStart)showHostStart();
+      send({type:"hostImageReady"});
+    }else if(msg.type==="friendStart"){
+      state.friendStart=true;
+      document.getElementById("hostFriendStart").textContent="✅ STARTED";
+      maybeStartBoth();
+    }else if(msg.type==="requestState"){
+      send({type:"hostState",accepted:state.friendAccepted,imageReady:state.friendImageReady,hostStart:state.hostStart,friendName:state.friendName,difficulty:state.difficulty,seed:state.seed});
+    }else if(msg.type==="finished"){
+      state.opponentFinished=true;state.opponentTime=msg.time;
+      resolveFriendResult();
+    }
+  }else{
+    if(msg.type==="hostAccepted"){
+      state.friendName=msg.hostName;state.difficulty=msg.difficulty||state.difficulty;state.seed=msg.seed||state.seed;
+      document.getElementById("friendReadyStatus").textContent="✅ Friend accepted you. Waiting for both players to START.";
+    }else if(msg.type==="hostImageReady"){
+      document.getElementById("friendHostReady").textContent="✅ IMAGE READY";
+    }else if(msg.type==="hostState"){
+      state.friendName=msg.friendName||state.friendName;state.difficulty=msg.difficulty||state.difficulty;state.seed=msg.seed||state.seed;
+      if(msg.hostStart){state.hostStart=true;document.getElementById("friendHostReady").textContent="✅ STARTED";}
+      if(msg.imageReady)document.getElementById("friendHostReady").textContent="✅ IMAGE READY";
+    }else if(msg.type==="startAt"){
+      state.gameStartAt=msg.startAt; startFriendGame(msg.startAt);
+    }else if(msg.type==="finished"){
+      state.opponentFinished=true;state.opponentTime=msg.time;resolveFriendResult();
     }
   }
 }
-
-function startFriendGame(){
-  state.mode="friend";
-  state.grid=makePuzzle(state.difficulty,state.seed);
-  state.selected=null;state.revealed=null;state.solved=false;
-  state.myFinished=false;state.opponentFinished=false;
-  state.opponentTime=null;state.myTime=null;
+function shareWhatsApp(){
+  if(!state.inviteUrl)return alert("Please wait until the invite is ready.");
+  const text=`🧩 FIND – PUZZLE\n\nI challenge you to play with me! 🔥\n\nOpen this invite:\n${state.inviteUrl}\n\nAccept → Enter your name → Choose your image → Press START.`;
+  window.location.href="https://wa.me/?text="+encodeURIComponent(text);
+}
+function showHostStart(){
+  if(state.friendAccepted&&state.friendImageReady){
+    document.getElementById("hostStartBtn").classList.remove("hidden");
+  }
+}
+function hostStart(){
+  if(!state.friendAccepted||!state.friendImageReady)return alert("Wait for your friend to accept and select an image.");
+  state.hostStart=true;document.getElementById("hostStartBtn").textContent="⏳ WAITING FOR FRIEND";document.getElementById("hostStartBtn").disabled=true;
+  document.getElementById("hostInviteStatus").textContent="You are ready. Waiting for your friend to press START…";
+  send({type:"hostStart"}); maybeStartBoth();
+}
+function friendStart(){
+  if(!state.imageReady)return alert("Select your image first.");
+  state.friendStart=true;document.getElementById("friendStartBtn").textContent="⏳ WAITING FOR FRIEND";document.getElementById("friendStartBtn").disabled=true;
+  send({type:"friendStart"}); maybeStartBoth();
+}
+function maybeStartBoth(){
+  if(state.isHost && state.hostStart && state.friendStart){
+    const startAt=Date.now()+3000;state.gameStartAt=startAt;send({type:"startAt",startAt});startFriendGame(startAt);
+  }
+}
+function startFriendGame(startAt){
+  state.mode="friend";state.grid=makePuzzle(state.difficulty,state.isHost?state.seed:state.seed||Math.floor(Math.random()*0xffffffff));
+  if(!state.seed)state.seed=Math.floor(Math.random()*0xffffffff);
+  state.selected=null;state.revealed=null;state.solved=false;state.myFinished=false;state.opponentFinished=false;state.myTime=null;state.opponentTime=null;
   document.getElementById("reference").src=state.finalImage;
   document.getElementById("playerLabel").textContent="You: "+state.name;
-  document.getElementById("modeLabel").textContent=
-    `FRIEND VS ME • ${state.difficulty}×${state.difficulty} • Friend: ${state.friendName}`;
-  document.getElementById("opponentStatus").classList.add("hidden");
-  document.getElementById("gameInfo").textContent="Same puzzle • Same start • Race!";
-  buildGrid();
-  startTimer();
-  show("game");
+  document.getElementById("modeLabel").textContent=`FRIEND VS ME • ${state.difficulty}×${state.difficulty} • Friend: ${state.friendName}`;
+  document.getElementById("gameInfo").textContent="Get ready…";buildGrid();show("game");
+  const wait=Math.max(0,(startAt||Date.now())-Date.now());
+  setTimeout(()=>{document.getElementById("gameInfo").textContent="🚀 GO!";startTimer()},wait);
 }
-
-async function copyInvite(){
-  const input=document.getElementById("inviteLink");
-  try{
-    await navigator.clipboard.writeText(input.value);
-    alert("✅ Invite link copied!");
-  }catch(e){
-    input.select();
-    document.execCommand("copy");
-    alert("✅ Invite link copied!");
+function resolveFriendResult(){
+  if(state.myFinished && state.opponentFinished){
+    if(state.myTime<=state.opponentTime)showCompletionPreview("gold",state.name,state.myTime,"BRILLIANT MIND. YOU FINISHED FIRST!");
+    else showCompletionPreview("silver",state.name,state.myTime,"GREAT THINKING. YOUR FRIEND FINISHED FIRST.");
+  }else if(!state.myFinished){
+    document.getElementById("opponentStatus").classList.remove("hidden");
+    document.getElementById("opponentStatus").textContent="🏁 Your friend finished. Finish your puzzle!";
   }
 }
-async function cancelInvite(){
-  show("difficulty");
+function loadFriendImage(event){
+  const file=event.target.files&&event.target.files[0];if(!file||!file.type.startsWith("image/"))return;
+  const reader=new FileReader();reader.onload=()=>{state.finalImage=reader.result;state.imageReady=true;document.getElementById("friendImagePreview").src=state.finalImage;document.getElementById("friendImagePreview").classList.remove("hidden");document.getElementById("friendImageStatus").textContent="🎯 Your image is ready!";};reader.readAsDataURL(file);
 }
-function shareWhatsApp(){
-  const link=document.getElementById("inviteLink").value;
-
-  if(!link || link.startsWith("file:")){
-    alert("Macha, this game must be opened from an online HTTPS link before inviting a friend.");
-    return;
-  }
-
-  const text=`🧩 FIND – PUZZLE
-I invited you to play with me!
-Open this link, tap ACCEPT, enter your name, and join my game:
-${link}`;
-
-  const whatsappUrl="https://wa.me/?text="+encodeURIComponent(text);
-
-  // Directly open WhatsApp's share composer.
-  window.location.href=whatsappUrl;
+function friendImageDone(){
+  if(!state.imageReady)return alert("Please select your image first.");
+  document.getElementById("friendReadyStatus").textContent="Waiting for your friend to be ready…";
+  show("friendReady");
+  send({type:"imageReady"});
 }
 function cleanupPeer(){
   try{if(state.conn)state.conn.close();if(state.peer)state.peer.destroy()}catch(e){}
